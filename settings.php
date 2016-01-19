@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This file contains the version information for the comments feedback plugin
+ * This file contains the version information for the e-signature feedback plugin
  *
  * @package   assignfeedback_esign
  * @copyright 2016 Pavel Sokolov <pavel.m.sokolov@gmail.com>
@@ -25,4 +25,3 @@
 $settings->add(new admin_setting_configcheckbox('assignfeedback_esign/default',
                    new lang_string('default', 'assignfeedback_esign'),
                    new lang_string('default_help', 'assignfeedback_esign'), 0));
-

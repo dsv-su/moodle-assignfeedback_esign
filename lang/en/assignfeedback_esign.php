@@ -26,5 +26,5 @@ $string['default'] = 'Enabled by default';
 $string['default_help'] = 'If set, this feedback method will be enabled by default for all new assignments.';
 $string['enabled'] = 'Feedback e-signature';
 $string['enabled_help'] = 'If enabled, the grader e-signature is required while marking the assignment.';
+$string['eventgradesigned'] = 'Grade e-signed';
 $string['pluginname'] = 'Feedback e-signature';
-

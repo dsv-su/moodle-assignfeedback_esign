@@ -68,7 +68,54 @@ class assign_feedback_esign extends assign_feedback_plugin {
      * @return bool
      */
     public function save(stdClass $grade, stdClass $data) {
-        global $DB;
+        global $DB, $USER;
+
+        $user = $DB->get_record('user', array('id' => $grade->grader));
+
+        $nextpageparams = array();
+        $nextpageparams['id'] = $this->assignment->get_course_module()->id;
+        $nextpageparams['action'] = 'grading';
+
+        //Handle 'save and show next' button.
+        if (optional_param('saveandshownext', null, PARAM_RAW)) {
+            $nextpageparams['action'] = 'grade';
+            $nextpageparams['rownum'] = optional_param('rownum', 0, PARAM_INT) + 1;
+            $nextpageparams['useridlistid'] = optional_param('useridlistid', $this->assignment->get_useridlist_key_id(), PARAM_ALPHANUM);
+        }
+
+        if ($grade->grade) {
+            // Check which files to sign, and which signatures to delete.
+
+            $esign = $this->get_signature($grade);
+
+            if (!$esign) {
+                $esign = new stdClass();
+                $esign->signedtoken = 'empty_token';
+                $esign->contextid = $this->assignment->get_context()->id;
+                $esign->component = 'assignfeedback_esign';
+                $esign->grade = $grade->id;
+                $esign->userid = $grade->grader;
+                $esign->signee = fullname($user);
+                $esign->timesigned = time();
+
+                $DB->insert_record('assignfeedback_esign', $esign);
+            }
+
+            $_SESSION['grade'] = serialize($grade);
+            $_SESSION['nextpageparams'] = serialize($nextpageparams);
+
+            $params = array(
+                'context' => $this->assignment->get_context(),
+                'courseid' => $this->assignment->get_course()->id
+            );
+
+            $_SESSION['event_params'] = serialize($params);
+            $_SESSION['cmid'] = $this->assignment->get_course_module()->id;
+
+            redirect('feedback/esign/peps-sign-request.php?country='.$data->country);
+        } else {
+            return true;
+        }
     }
 
     /**
@@ -80,7 +127,6 @@ class assign_feedback_esign extends assign_feedback_plugin {
      */
     public function view_summary(stdClass $grade, & $showviewlink) {
         global $DB;
-
         // Never show a link to view full submission.
         $showviewlink = false;
         // Let's try to display signed feedback info.
@@ -101,6 +147,12 @@ class assign_feedback_esign extends assign_feedback_plugin {
      */
     private function get_signature($grade) {
         global $DB;
+        $esign = $DB->get_record('assignfeedback_esign', array('grade' => $grade->id));
+        if ($esign) {
+            return $esign;
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -123,6 +175,6 @@ class assign_feedback_esign extends assign_feedback_plugin {
      * @return bool
      */
     public function is_empty(stdClass $grade) {
-        return true;
+        return !$this->get_signature($grade);
     }
 }
