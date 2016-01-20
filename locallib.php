@@ -53,10 +53,9 @@ class assign_feedback_esign extends assign_feedback_plugin {
         $choices = get_string_manager()->get_list_of_countries();
         $choices = array('' => get_string('selectacountry') . '...') + $choices;
         $mform->addElement('select', 'country', 'Country for E-signature', $choices);
-        $mform->addElement('static', 'description', '',
-            'By saving changes you will be redirected to your PEPS provider in order to complete e-signing of the grading action.');
+        $mform->addElement('static', 'description', '', get_string('savechanges', 'assignfeedback_esign'));
         $mform->setDefault('country', 'SE');
-        $mform->addRule('country', 'Please choose your country', 'required', '', 'client', false, false);
+        $mform->addRule('country', get_string('selectacountry'), 'required', '', 'client', false, false);
         return true;
     }
 
@@ -132,9 +131,11 @@ class assign_feedback_esign extends assign_feedback_plugin {
         // Let's try to display signed feedback info.
         $esign = $this->get_signature($grade);
         if ($esign) {
-            $output = 'The submission is signed by teacher '.$esign->signee.
-            ' on '.userdate($esign->timesigned);
-            return $output;
+            if ($esign->signedtoken <> 'empty_token') {
+                $esign->timesigned = userdate($esign->timesigned);
+                $output = get_string('signedby', 'assignfeedback_esign', $esign);
+                return $output;
+            }
         }
         return false;
     }
@@ -175,6 +176,6 @@ class assign_feedback_esign extends assign_feedback_plugin {
      * @return bool
      */
     public function is_empty(stdClass $grade) {
-        return !$this->get_signature($grade);
+        return ($this->get_signature($grade)->signedtoken == 'empty_token');
     }
 }

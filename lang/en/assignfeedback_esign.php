@@ -28,3 +28,5 @@ $string['enabled'] = 'Feedback e-signature';
 $string['enabled_help'] = 'If enabled, the grader e-signature is required while marking the assignment.';
 $string['eventgradesigned'] = 'Grade e-signed';
 $string['pluginname'] = 'Feedback e-signature';
+$string['savechanges'] = 'By saving changes you will be redirected to your PEPS provider in order to complete e-signing of the grading action.';
+$string['signedby'] = 'Signed by teacher {$a->signee} on {$a->timesigned}';
