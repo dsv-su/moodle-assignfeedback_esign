@@ -10,13 +10,25 @@ require_once($CFG->dirroot.'/mod/assign/locallib.php');
 // Read stork saml response
 $stork_attributes = parseStorkResponse();
 
+$grade = unserialize($_SESSION['grade']);
+$nextpageparams = unserialize($_SESSION['nextpageparams']);
+$cmid = $_SESSION['cmid'];
+
+unset($_SESSION['grade']);
+unset($_SESSION['nextpageparams']);
+unset($_SESSION['cmid']);
+
 if ($stork_attributes) {
 	$stork_token = $stork_attributes['eIdentifier'];
 
 	$grade = unserialize($_SESSION['grade']);
-	$event_params = unserialize($_SESSION['event_params']);
 	$nextpageparams = unserialize($_SESSION['nextpageparams']);
 	$cmid = $_SESSION['cmid'];
+
+	if(isset($_SESSION['esignforall']) && $_SESSION['esignforall']) {
+		$_SESSION['signedtoken'] = $stork_token;
+		redirect('../../view.php?id='.$cmid.'&action=grading', get_string('esignforalladded', 'assignfeedback_esign'));
+	}
 
 	$esign = $DB->get_record('assignfeedback_esign', array('grade' => $grade->id));
 

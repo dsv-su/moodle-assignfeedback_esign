@@ -22,11 +22,17 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['addesign'] = 'Add an e-signature';
+$string['addesignforall'] = 'Add e-signature to be used for grading of multiple students.';
 $string['default'] = 'Enabled by default';
 $string['default_help'] = 'If set, this feedback method will be enabled by default for all new assignments.';
 $string['enabled'] = 'Feedback e-signature';
 $string['enabled_help'] = 'If enabled, the grader e-signature is required while marking the assignment.';
+$string['error_missingtoken'] = 'You have to add your e-signature before saving quick grades. It is done through \'Grading action\' menu on top of the grading table.';
+$string['esignalreadyadded'] = 'You have already added your e-signature, but you can update it if you wish.';
+$string['esignforalladded'] = 'You are now added your e-signature to your session. It will now be used for grading students. Notice that it will expire in 15 minutes.';
 $string['eventgradesigned'] = 'Grade e-signed';
 $string['pluginname'] = 'Feedback e-signature';
 $string['savechanges'] = 'By saving changes you will be redirected to your PEPS provider in order to complete e-signing of the grading action.';
 $string['signedby'] = 'Signed by teacher {$a->signee} on {$a->timesigned}';
+$string['updateesign'] = 'Update my e-signature';

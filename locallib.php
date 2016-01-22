@@ -71,17 +71,6 @@ class assign_feedback_esign extends assign_feedback_plugin {
 
         $user = $DB->get_record('user', array('id' => $grade->grader));
 
-        $nextpageparams = array();
-        $nextpageparams['id'] = $this->assignment->get_course_module()->id;
-        $nextpageparams['action'] = 'grading';
-
-        //Handle 'save and show next' button.
-        if (optional_param('saveandshownext', null, PARAM_RAW)) {
-            $nextpageparams['action'] = 'grade';
-            $nextpageparams['rownum'] = optional_param('rownum', 0, PARAM_INT) + 1;
-            $nextpageparams['useridlistid'] = optional_param('useridlistid', $this->assignment->get_useridlist_key_id(), PARAM_ALPHANUM);
-        }
-
         if ($grade->grade) {
             // Check which files to sign, and which signatures to delete.
 
@@ -100,15 +89,29 @@ class assign_feedback_esign extends assign_feedback_plugin {
                 $DB->insert_record('assignfeedback_esign', $esign);
             }
 
+            if (isset($_SESSION['signedtoken']) && $_SESSION['signedtoken']) {
+                $esign = $DB->get_record('assignfeedback_esign', array('grade' => $grade->id));
+                $esign->signedtoken = $_SESSION['signedtoken'];
+                $esign->timesigned = time();
+                $DB->update_record('assignfeedback_esign', $esign);
+                $event = \assignfeedback_esign\event\grade_signed::create_from_grade($this->assignment, $grade);
+                $event->trigger();
+                return true;
+            }
+
+            $nextpageparams = array();
+            $nextpageparams['id'] = $this->assignment->get_course_module()->id;
+            $nextpageparams['action'] = 'grading';
+
+            //Handle 'save and show next' button.
+            if (optional_param('saveandshownext', null, PARAM_RAW)) {
+                $nextpageparams['action'] = 'grade';
+                $nextpageparams['rownum'] = optional_param('rownum', 0, PARAM_INT) + 1;
+                $nextpageparams['useridlistid'] = optional_param('useridlistid', $this->assignment->get_useridlist_key_id(), PARAM_ALPHANUM);
+            }
+
             $_SESSION['grade'] = serialize($grade);
             $_SESSION['nextpageparams'] = serialize($nextpageparams);
-
-            $params = array(
-                'context' => $this->assignment->get_context(),
-                'courseid' => $this->assignment->get_course()->id
-            );
-
-            $_SESSION['event_params'] = serialize($params);
             $_SESSION['cmid'] = $this->assignment->get_course_module()->id;
 
             redirect('feedback/esign/peps-sign-request.php?country='.$data->country);
@@ -129,15 +132,7 @@ class assign_feedback_esign extends assign_feedback_plugin {
         // Never show a link to view full submission.
         $showviewlink = false;
         // Let's try to display signed feedback info.
-        $esign = $this->get_signature($grade);
-        if ($esign) {
-            if ($esign->signedtoken <> 'empty_token') {
-                $esign->timesigned = userdate($esign->timesigned);
-                $output = get_string('signedby', 'assignfeedback_esign', $esign);
-                return $output;
-            }
-        }
-        return false;
+        return $this->print_esign_summary($grade);
     }
 
     /**
@@ -148,6 +143,11 @@ class assign_feedback_esign extends assign_feedback_plugin {
      */
     private function get_signature($grade) {
         global $DB;
+
+        if (!$grade) {
+            return false;
+        }
+
         $esign = $DB->get_record('assignfeedback_esign', array('grade' => $grade->id));
         if ($esign) {
             return $esign;
@@ -176,6 +176,173 @@ class assign_feedback_esign extends assign_feedback_plugin {
      * @return bool
      */
     public function is_empty(stdClass $grade) {
-        return ($this->get_signature($grade)->signedtoken == 'empty_token');
+        if ($this->get_signature($grade)) {
+            return ($this->get_signature($grade)->signedtoken == 'empty_token');
+        } else {
+            return true;
+        }
     }
+
+    /**
+     * Override to indicate a plugin supports quickgrading.
+     *
+     * @return boolean - True if the plugin supports quickgrading
+     */
+    public function supports_quickgrading() {
+        return true;
+    }
+
+    /**
+     * Save quickgrading changes.
+     *
+     * @param int $userid The user id in the table this quickgrading element relates to
+     * @param stdClass $grade The grade
+     * @return boolean - true if the grade changes were saved correctly
+     */
+    public function save_quickgrading_changes($userid, $grade) {
+        $user = $DB->get_record('user', array('id' => $grade->grader));
+
+        if (isset($_SESSION['signedtoken']) && $_SESSION['signedtoken']) {
+
+            $esign = $this->get_signature($grade);
+            if (!$esign) {
+                $esign = new stdClass();
+                $esign->signedtoken = 'empty_token';
+                $esign->contextid = $this->assignment->get_context()->id;
+                $esign->component = 'assignfeedback_esign';
+                $esign->grade = $grade->id;
+                $esign->userid = $grade->grader;
+                $esign->signee = fullname($user);
+                $esign->timesigned = time();
+
+                $DB->insert_record('assignfeedback_esign', $esign);
+            }
+
+            $esign = $DB->get_record('assignfeedback_esign', array('grade' => $grade->id));
+            $esign->signedtoken = $_SESSION['signedtoken'];
+            $esign->timesigned = time();
+            $DB->update_record('assignfeedback_esign', $esign);
+            $event = \assignfeedback_esign\event\grade_signed::create_from_grade($this->assignment, $grade);
+            $event->trigger();
+
+            return true;
+        } else {
+            global $OUTPUT;
+            $nextpageparams = array();
+            $nextpageparams['id'] = $this->assignment->get_course_module()->id;
+            $nextpageparams['action'] = 'grading';
+            echo $OUTPUT->header();
+            echo $OUTPUT->heading(get_string('error'), 3);
+            echo $OUTPUT->notification($OUTPUT->error_text(get_string('error_missingtoken', 'assignfeedback_esign')));
+            $button = new single_button(new moodle_url('/mod/assign/view.php', $nextpageparams), get_string('back'), 'get');
+            $button->class = 'continuebutton';
+            echo $OUTPUT->render($button);
+            echo $OUTPUT->footer();
+            exit;
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Return a list of the grading actions supported by this plugin.
+     *
+     * A grading action is a page that is not specific to a user but to the whole assignment.
+     * @return array - An array of action and description strings.
+     *                 The action will be passed to grading_action.
+     */
+    public function get_grading_actions() {
+        return array('addesign'=> get_string('addesign', 'assignfeedback_esign'));
+    }
+
+
+    /**
+     * Called by the assignment module when someone chooses something from the
+     * grading navigation or batch operations list.
+     *
+     * @param string $action - The page to view
+     * @return string - The html response
+     */
+    public function view_page($action) {
+
+        global $OUTPUT;
+        if ($action == 'addesign') {
+            global $CFG, $DB, $USER;
+
+            require_capability('mod/assign:grade', $this->assignment->get_context());
+            require_once($CFG->dirroot . '/mod/assign/feedback/esign/esignform.php');
+
+            $formparams = array('cm'=>$this->assignment->get_course_module()->id,
+                    'context'=>$this->assignment->get_context());
+
+        $mform = new assignfeedback_esign_esign_form(null, $formparams);
+
+        if ($mform->is_cancelled()) {
+            unset($_SESSION['esignforall']);
+            redirect(new moodle_url('view.php',
+                                    array('id'=>$this->assignment->get_course_module()->id,
+                                          'action'=>'grading')));
+            return;
+        } else if ($data = $mform->get_data()) {
+            $_SESSION['esignforall'] = true;
+            redirect('feedback/esign/peps-sign-request.php?country='.$data->country);
+
+            return;
+        } else {
+
+            $header = new assign_header($this->assignment->get_instance(),
+                                        $this->assignment->get_context(),
+                                        false,
+                                        $this->assignment->get_course_module()->id,
+                                        get_string('addesign', 'assignfeedback_esign'));
+            $o = '';
+            $o .= $this->assignment->get_renderer()->render($header);
+            $o .= $this->assignment->get_renderer()->render(new assign_form('esign', $mform));
+            $o .= $this->assignment->get_renderer()->render_footer();
+        }
+
+        return $o;
+
+        }
+
+        return '';
+    }
+
+    /**
+     * Get quickgrading form elements as html.
+     *
+     * @param int $userid The user id in the table this quickgrading element relates to
+     * @param mixed $grade grade or null - The grade data.
+     *                     May be null if there are no grades for this user (yet)
+     * @return mixed - A html string containing the html form elements required for
+     *                 quickgrading or false to indicate this plugin does not support quickgrading
+     */
+    public function get_quickgrading_html($userid, $grade) {
+        if ($grade) {
+            return $this->print_esign_summary($grade);
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Returns signed string from the DB for the given grade as html.
+     *
+     * @param mixed $grade grade or null - The grade data.
+     *                     May be null if there are no grades for this user (yet)
+     * @return mixed - A html string containing the html form elements required for
+     *                 quickgrading or false to indicate this plugin does not support quickgrading
+     */
+    public function print_esign_summary($grade) {
+        $esign = $this->get_signature($grade);
+        if ($esign && $esign->signedtoken <> 'empty_token') {
+            $esign->timesigned = userdate($esign->timesigned);
+            $output = get_string('signedby', 'assignfeedback_esign', $esign);
+            return $output;
+        } else {
+            return '';
+        }
+    }
+
 }
