@@ -21,10 +21,6 @@ unset($_SESSION['cmid']);
 if ($stork_attributes) {
 	$stork_token = $stork_attributes['eIdentifier'];
 
-	$grade = unserialize($_SESSION['grade']);
-	$nextpageparams = unserialize($_SESSION['nextpageparams']);
-	$cmid = $_SESSION['cmid'];
-
 	if(isset($_SESSION['esignforall']) && $_SESSION['esignforall']) {
 		$_SESSION['signedtoken'] = $stork_token;
 		redirect('../../view.php?id='.$cmid.'&action=grading', get_string('esignforalladded', 'assignfeedback_esign'));

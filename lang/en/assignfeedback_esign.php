@@ -12,7 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle. If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * Strings for component 'assignfeedback_esign', language 'en'
@@ -30,7 +30,7 @@ $string['enabled'] = 'Feedback e-signature';
 $string['enabled_help'] = 'If enabled, the grader e-signature is required while marking the assignment.';
 $string['error_missingtoken'] = 'You have to add your e-signature before saving quick grades. It is done through \'Grading action\' menu on top of the grading table.';
 $string['esignalreadyadded'] = 'You have already added your e-signature, but you can update it if you wish.';
-$string['esignforalladded'] = 'You are now added your e-signature to your session. It will now be used for grading students. Notice that it will expire in 15 minutes.';
+$string['esignforalladded'] = 'You are now added your e-signature to your session. It will now be used for grading students.';
 $string['eventgradesigned'] = 'Grade e-signed';
 $string['pluginname'] = 'Feedback e-signature';
 $string['savechanges'] = 'By saving changes you will be redirected to your PEPS provider in order to complete e-signing of the grading action.';

@@ -276,33 +276,33 @@ class assign_feedback_esign extends assign_feedback_plugin {
             $formparams = array('cm'=>$this->assignment->get_course_module()->id,
                     'context'=>$this->assignment->get_context());
 
-        $mform = new assignfeedback_esign_esign_form(null, $formparams);
+            $mform = new assignfeedback_esign_esign_form(null, $formparams);
 
-        if ($mform->is_cancelled()) {
-            unset($_SESSION['esignforall']);
-            redirect(new moodle_url('view.php',
-                                    array('id'=>$this->assignment->get_course_module()->id,
-                                          'action'=>'grading')));
-            return;
-        } else if ($data = $mform->get_data()) {
-            $_SESSION['esignforall'] = true;
-            redirect('feedback/esign/peps-sign-request.php?country='.$data->country);
+            if ($mform->is_cancelled()) {
+                unset($_SESSION['esignforall']);
+                redirect(new moodle_url('view.php',
+                                        array('id'=>$this->assignment->get_course_module()->id,
+                                              'action'=>'grading')));
+                return;
+            } else if ($data = $mform->get_data()) {
+                $_SESSION['esignforall'] = true;
+                redirect('feedback/esign/peps-sign-request.php?country='.$data->country);
 
-            return;
-        } else {
+                return;
+            } else {
 
-            $header = new assign_header($this->assignment->get_instance(),
-                                        $this->assignment->get_context(),
-                                        false,
-                                        $this->assignment->get_course_module()->id,
-                                        get_string('addesign', 'assignfeedback_esign'));
-            $o = '';
-            $o .= $this->assignment->get_renderer()->render($header);
-            $o .= $this->assignment->get_renderer()->render(new assign_form('esign', $mform));
-            $o .= $this->assignment->get_renderer()->render_footer();
-        }
+                $header = new assign_header($this->assignment->get_instance(),
+                                            $this->assignment->get_context(),
+                                            false,
+                                            $this->assignment->get_course_module()->id,
+                                            get_string('addesign', 'assignfeedback_esign'));
+                $o = '';
+                $o .= $this->assignment->get_renderer()->render($header);
+                $o .= $this->assignment->get_renderer()->render(new assign_form('esign', $mform));
+                $o .= $this->assignment->get_renderer()->render_footer();
+            }
 
-        return $o;
+                return $o;
 
         }
 
