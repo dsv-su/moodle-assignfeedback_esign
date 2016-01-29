@@ -10,19 +10,21 @@ require_once($CFG->dirroot.'/mod/assign/locallib.php');
 // Read stork saml response
 $stork_attributes = parseStorkResponse();
 
-$grade = unserialize($_SESSION['grade']);
-$nextpageparams = unserialize($_SESSION['nextpageparams']);
-$cmid = $_SESSION['cmid'];
+$cmid = (isset($_SESSION['cmid']) ? ($_SESSION['cmid']) : null);
+$grade = (isset($_SESSION['assign'.$cmid]['grade']) ? unserialize($_SESSION['assign'.$cmid]['grade']) : null);
+$nextpageparams = (isset($_SESSION['assign'.$cmid]['nextpageparams']) ? unserialize($_SESSION['assign'.$cmid]['nextpageparams']) : null);
+$data = (isset($_SESSION['assign'.$cmid]['data']) ? unserialize($_SESSION['assign'.$cmid]['data']) : null);
+$esignforall = (isset($_SESSION['assign'.$cmid]['esignforall']) ? ($_SESSION['assign'.$cmid]['esignforall']) : null);
 
-unset($_SESSION['grade']);
-unset($_SESSION['nextpageparams']);
+unset($_SESSION['assign'.$cmid]);
 unset($_SESSION['cmid']);
 
 if ($stork_attributes) {
 	$stork_token = $stork_attributes['eIdentifier'];
 
-	if(isset($_SESSION['esignforall']) && $_SESSION['esignforall']) {
-		$_SESSION['signedtoken'] = $stork_token;
+	$_SESSION['assign'.$cmid]['feedback_token'] = $stork_token;
+
+	if($esignforall) {
 		redirect('../../view.php?id='.$cmid.'&action=grading', get_string('esignforalladded', 'assignfeedback_esign'));
 	}
 
@@ -48,8 +50,7 @@ if ($stork_attributes) {
 
 	$event = \assignfeedback_esign\event\grade_signed::create_from_grade($assignment, $grade);
 	$event->trigger();
-
-	$assignment->update_grade($grade);
+	$assignment->save_grade($grade->userid, $data);
 
 	if ($nextpageparams) {
 		$nextpageurl = new moodle_url('/mod/assign/view.php', $nextpageparams);

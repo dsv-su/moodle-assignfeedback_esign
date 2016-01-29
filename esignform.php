@@ -49,7 +49,7 @@ class assignfeedback_esign_esign_form extends moodleform {
         $choices = array('' => get_string('selectacountry') . '...') + $choices;
         $mform->addElement('select', 'country', 'Country for E-signature', $choices);
         $mform->setDefault('country', 'SE');
-        if (isset($_SESSION['signedtoken']) && $_SESSION['signedtoken']) {
+        if (isset($_SESSION['assign'.$params['cm']]['signedtoken']) && $_SESSION['assign'.$params['cm']]['signedtoken']) {
             $mform->addElement('static', 'description', '', get_string('esignalreadyadded', 'assignfeedback_esign'));
         } else {
             $mform->addElement('static', 'description', '', get_string('addesignforall', 'assignfeedback_esign'));
@@ -66,7 +66,7 @@ class assignfeedback_esign_esign_form extends moodleform {
         $mform->setType('plugin', PARAM_PLUGIN);
         $mform->addElement('hidden', 'pluginsubtype', 'assignfeedback');
         $mform->setType('pluginsubtype', PARAM_PLUGIN);
-        if (isset($_SESSION['signedtoken']) && $_SESSION['signedtoken']) {
+        if (isset($_SESSION['assign'.$params['cm']]['signedtoken']) && $_SESSION['assign'.$params['cm']]['signedtoken']) {
             $this->add_action_buttons(true, get_string('updateesign', 'assignfeedback_esign'));
         } else {
             $this->add_action_buttons(true, get_string('addesign', 'assignfeedback_esign'));

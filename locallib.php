@@ -74,33 +74,17 @@ class assign_feedback_esign extends assign_feedback_plugin {
         if ($grade->grade) {
             // Check which files to sign, and which signatures to delete.
 
+            $cmid = $this->assignment->get_course_module()->id;
             $esign = $this->get_signature($grade);
-
-            if (!$esign) {
-                $esign = new stdClass();
-                $esign->signedtoken = 'empty_token';
-                $esign->contextid = $this->assignment->get_context()->id;
-                $esign->component = 'assignfeedback_esign';
-                $esign->grade = $grade->id;
-                $esign->userid = $grade->grader;
-                $esign->signee = fullname($user);
-                $esign->timesigned = time();
-
-                $DB->insert_record('assignfeedback_esign', $esign);
-            }
-
-            if (isset($_SESSION['signedtoken']) && $_SESSION['signedtoken']) {
-                $esign = $DB->get_record('assignfeedback_esign', array('grade' => $grade->id));
-                $esign->signedtoken = $_SESSION['signedtoken'];
-                $esign->timesigned = time();
-                $DB->update_record('assignfeedback_esign', $esign);
-                $event = \assignfeedback_esign\event\grade_signed::create_from_grade($this->assignment, $grade);
-                $event->trigger();
+            if (isset($_SESSION['assign'.$cmid]['feedback_token']) && $_SESSION['assign'.$cmid]['feedback_token']) {
+                $this->process_initial_esigning($grade, true);
                 return true;
+            } else {
+                $this->process_initial_esigning($grade);
             }
 
             $nextpageparams = array();
-            $nextpageparams['id'] = $this->assignment->get_course_module()->id;
+            $nextpageparams['id'] = $cmid;
             $nextpageparams['action'] = 'grading';
 
             //Handle 'save and show next' button.
@@ -110,14 +94,52 @@ class assign_feedback_esign extends assign_feedback_plugin {
                 $nextpageparams['useridlistid'] = optional_param('useridlistid', $this->assignment->get_useridlist_key_id(), PARAM_ALPHANUM);
             }
 
-            $_SESSION['grade'] = serialize($grade);
-            $_SESSION['nextpageparams'] = serialize($nextpageparams);
-            $_SESSION['cmid'] = $this->assignment->get_course_module()->id;
+            $_SESSION['assign'.$cmid] = array();
+            $_SESSION['assign'.$cmid]['data'] = serialize($data);
+            $_SESSION['assign'.$cmid]['grade'] = serialize($grade);
+            $_SESSION['assign'.$cmid]['nextpageparams'] = serialize($nextpageparams);
+            $_SESSION['cmid'] = $cmid;
 
             redirect('feedback/esign/peps-sign-request.php?country='.$data->country);
         } else {
             return true;
         }
+    }
+
+    /**
+     * Saves the initial signature in the feedback table, and signs it if needed.
+     *
+     * @param stdClass $grade
+     * @param bool $showviewlink Set to true to show a link to view the full feedback
+     * @return string
+     */
+    public function process_initial_esigning($grade, $feedback_token = false) {
+        global $DB;
+        $user = $DB->get_record('user', array('id' => $grade->grader));
+        $esign = $this->get_signature($grade);
+        if (!$esign) {
+            $esign = new stdClass();
+            $esign->signedtoken = 'empty_token';
+            $esign->contextid = $this->assignment->get_context()->id;
+            $esign->component = 'assignfeedback_esign';
+            $esign->grade = $grade->id;
+            $esign->userid = $grade->grader;
+            $esign->signee = fullname($user);
+            $esign->timesigned = time();
+
+            $DB->insert_record('assignfeedback_esign', $esign);
+        }
+
+        if ($feedback_token) {
+            $esign = $DB->get_record('assignfeedback_esign', array('grade' => $grade->id));
+            $esign->signedtoken = $_SESSION['assign'.$this->assignment->get_course_module()->id]['feedback_token'];
+            $esign->timesigned = time();
+            $DB->update_record('assignfeedback_esign', $esign);
+            $event = \assignfeedback_esign\event\grade_signed::create_from_grade($this->assignment, $grade);
+            $event->trigger();
+        }
+
+        return;
     }
 
     /**
@@ -204,30 +226,9 @@ class assign_feedback_esign extends assign_feedback_plugin {
 
         $user = $DB->get_record('user', array('id' => $grade->grader));
 
-        if (isset($_SESSION['signedtoken']) && $_SESSION['signedtoken']) {
-
-            $esign = $this->get_signature($grade);
-            if (!$esign) {
-                $esign = new stdClass();
-                $esign->signedtoken = 'empty_token';
-                $esign->contextid = $this->assignment->get_context()->id;
-                $esign->component = 'assignfeedback_esign';
-                $esign->grade = $grade->id;
-                $esign->userid = $grade->grader;
-                $esign->signee = fullname($user);
-                $esign->timesigned = time();
-
-                $DB->insert_record('assignfeedback_esign', $esign);
-            }
-
-            $esign = $DB->get_record('assignfeedback_esign', array('grade' => $grade->id));
-            $esign->signedtoken = $_SESSION['signedtoken'];
-            $esign->timesigned = time();
-            $DB->update_record('assignfeedback_esign', $esign);
-            $event = \assignfeedback_esign\event\grade_signed::create_from_grade($this->assignment, $grade);
-            $event->trigger();
-
-            return true;
+        if (isset($_SESSION['assign'.$this->assignment->get_course_module()->id]['feedback_token']) &&
+            $_SESSION['assign'.$this->assignment->get_course_module()->id]['feedback_token']) {
+            $this->process_initial_esigning($grade, true);
         } else {
             global $OUTPUT;
             $nextpageparams = array();
@@ -281,13 +282,14 @@ class assign_feedback_esign extends assign_feedback_plugin {
             $mform = new assignfeedback_esign_esign_form(null, $formparams);
 
             if ($mform->is_cancelled()) {
-                unset($_SESSION['esignforall']);
+                unset($_SESSION['assign'.$this->assignment->get_course_module()->id]['esignforall']);
                 redirect(new moodle_url('view.php',
                                         array('id'=>$this->assignment->get_course_module()->id,
                                               'action'=>'grading')));
                 return;
             } else if ($data = $mform->get_data()) {
-                $_SESSION['esignforall'] = true;
+                $_SESSION['assign'.$this->assignment->get_course_module()->id]['esignforall'] = true;
+                $_SESSION['cmid'] = $this->assignment->get_course_module()->id;
                 redirect('feedback/esign/peps-sign-request.php?country='.$data->country);
 
                 return;
