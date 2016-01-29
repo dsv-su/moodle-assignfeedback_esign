@@ -78,6 +78,7 @@ class assign_feedback_esign extends assign_feedback_plugin {
             $esign = $this->get_signature($grade);
             if (isset($_SESSION['assign'.$cmid]['feedback_token']) && $_SESSION['assign'.$cmid]['feedback_token']) {
                 $this->process_initial_esigning($grade, true);
+                unset($_SESSION['assign'.$cmid]['feedback_token']);
                 return true;
             } else {
                 $this->process_initial_esigning($grade);
