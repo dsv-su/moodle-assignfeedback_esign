@@ -38,6 +38,7 @@ if ($stork_attributes) {
 	$course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
 
 	$PAGE->set_context($context);
+	$PAGE->set_url('/mod/assign/view.php', array('id' => $cmid));
 	$PAGE->set_course($course);
 	$PAGE->set_cm($cm);
 	$PAGE->set_title(get_string('pluginname', 'assignfeedback_esign'));

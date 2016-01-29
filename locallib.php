@@ -200,6 +200,8 @@ class assign_feedback_esign extends assign_feedback_plugin {
      * @return boolean - true if the grade changes were saved correctly
      */
     public function save_quickgrading_changes($userid, $grade) {
+        global $DB, $OUTPUT;
+
         $user = $DB->get_record('user', array('id' => $grade->grader));
 
         if (isset($_SESSION['signedtoken']) && $_SESSION['signedtoken']) {
@@ -302,7 +304,7 @@ class assign_feedback_esign extends assign_feedback_plugin {
                 $o .= $this->assignment->get_renderer()->render_footer();
             }
 
-                return $o;
+            return $o;
 
         }
 
