@@ -34,5 +34,3 @@ function xmldb_assignfeedback_esign_upgrade($oldversion) {
 
     return true;
 }
-
-

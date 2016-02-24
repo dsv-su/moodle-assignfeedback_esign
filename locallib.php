@@ -29,14 +29,14 @@
  * library class for e-signature feedback plugin extending feedback plugin base class
  *
  * @copyright 2016 Pavel Sokolov <pavel.m.sokolov@gmail.com>
-* @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class assign_feedback_esign extends assign_feedback_plugin {
 
-   /**
-    * Get the name of the signature feedback plugin
-    * @return string
-    */
+    /**
+     * Get the name of the signature feedback plugin
+     * @return string
+     */
     public function get_name() {
         return get_string('pluginname', 'assignfeedback_esign');
     }
@@ -88,11 +88,12 @@ class assign_feedback_esign extends assign_feedback_plugin {
             $nextpageparams['id'] = $cmid;
             $nextpageparams['action'] = 'grading';
 
-            //Handle 'save and show next' button.
+            // Handle 'save and show next' button.
             if (optional_param('saveandshownext', null, PARAM_RAW)) {
                 $nextpageparams['action'] = 'grade';
                 $nextpageparams['rownum'] = optional_param('rownum', 0, PARAM_INT) + 1;
-                $nextpageparams['useridlistid'] = optional_param('useridlistid', $this->assignment->get_useridlist_key_id(), PARAM_ALPHANUM);
+                $nextpageparams['useridlistid'] = optional_param('useridlistid',
+                    $this->assignment->get_useridlist_key_id(), PARAM_ALPHANUM);
             }
 
             $_SESSION['assign'.$cmid] = array();
@@ -114,7 +115,7 @@ class assign_feedback_esign extends assign_feedback_plugin {
      * @param bool $showviewlink Set to true to show a link to view the full feedback
      * @return string
      */
-    public function process_initial_esigning($grade, $feedback_token = false) {
+    public function process_initial_esigning($grade, $feedbacktoken = false) {
         global $DB;
         $user = $DB->get_record('user', array('id' => $grade->grader));
         $esign = $this->get_signature($grade);
@@ -131,7 +132,7 @@ class assign_feedback_esign extends assign_feedback_plugin {
             $DB->insert_record('assignfeedback_esign', $esign);
         }
 
-        if ($feedback_token) {
+        if ($feedbacktoken) {
             $esign = $DB->get_record('assignfeedback_esign', array('grade' => $grade->id));
             $esign->signedtoken = $_SESSION['assign'.$this->assignment->get_course_module()->id]['feedback_token'];
             $esign->timesigned = time();
@@ -257,7 +258,7 @@ class assign_feedback_esign extends assign_feedback_plugin {
      *                 The action will be passed to grading_action.
      */
     public function get_grading_actions() {
-        return array('addesign'=> get_string('addesign', 'assignfeedback_esign'));
+        return array('addesign' => get_string('addesign', 'assignfeedback_esign'));
     }
 
 
@@ -277,16 +278,16 @@ class assign_feedback_esign extends assign_feedback_plugin {
             require_capability('mod/assign:grade', $this->assignment->get_context());
             require_once($CFG->dirroot . '/mod/assign/feedback/esign/esignform.php');
 
-            $formparams = array('cm'=>$this->assignment->get_course_module()->id,
-                    'context'=>$this->assignment->get_context());
+            $formparams = array('cm' => $this->assignment->get_course_module()->id,
+                    'context' => $this->assignment->get_context());
 
             $mform = new assignfeedback_esign_esign_form(null, $formparams);
 
             if ($mform->is_cancelled()) {
                 unset($_SESSION['assign'.$this->assignment->get_course_module()->id]['esignforall']);
                 redirect(new moodle_url('view.php',
-                                        array('id'=>$this->assignment->get_course_module()->id,
-                                              'action'=>'grading')));
+                                        array('id' => $this->assignment->get_course_module()->id,
+                                              'action' => 'grading')));
                 return;
             } else if ($data = $mform->get_data()) {
                 $_SESSION['assign'.$this->assignment->get_course_module()->id]['esignforall'] = true;
